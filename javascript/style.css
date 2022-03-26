@@ -1,0 +1,9 @@
+#canvas_div {
+    width: 800px;
+    height: 800px;
+    margin: auto;
+}
+
+#canvas {
+    border: 1px solid black;
+}
