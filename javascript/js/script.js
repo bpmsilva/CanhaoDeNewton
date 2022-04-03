@@ -14,7 +14,7 @@ const planet_radius = 100;
 
 // inputs
 var y = 1.5*planet_radius;
-var vx = 5; 
+var vx = 3; 
 
 var projectile = new Projectile(xc, y, vx, 0);
 
