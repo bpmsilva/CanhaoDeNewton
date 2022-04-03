@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canhão de Newton com JavaScript</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="canvas_div">
+        <canvas id="canvas" width="600" height="600"></canvas>
+    </div>
+    <script>
+    // Canvas
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+
+    // constants
+    const xc = canvas.width / 2;
+    const yc = canvas.height / 2;
+    const k = 0.005;
+    const m = 2000;
+    const planet_radius = 100;
+
+    // inputs
+    var y = 1.5*planet_radius;
+    var vx = 3; 
+
+
+    function distance(x1, y1, x2, y2) {
+        return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+    }
+
+    function detect_collision(x1, y1, r1, x2, y2, r2) {
+        return distance(x1, y1, x2, y2) <= r1 + r2;
+    }
+
+    function apply_collision(x, y, vx, vy, xc, yc) {
+
+        let hypotenuse = distance(x, y, xc, yc);
+        let cos_theta =  (x - xc) / hypotenuse;
+        let sin_theta = -(y - yc) / hypotenuse;
+
+        // velocity in the direction of the collision
+        let new_vx =   vx * sin_theta + vy * cos_theta;
+        let new_vy = - vx * cos_theta + vy * sin_theta;
+
+        // update the perpendicular velocity
+        new_vy = - 0.9 * new_vy;
+
+        // return the velocity to the original direction
+        let final_vx = new_vx*sin_theta - new_vy*cos_theta;
+        let final_vy = new_vx*cos_theta + new_vy*sin_theta;
+
+        return [final_vx, final_vy];
+    }
+
+    function draw_circle(ctx, x, y, r, color) {
+        ctx.beginPath();
+        ctx.fillStyle = color;
+        ctx.arc(x, y, r, 0, 2 * Math.PI);
+        ctx.fill();
+    }
+
+    class Projectile {
+        constructor(x, y, vx, vy, ax=0, ay=0, radius=10, color='green') {
+            this.x = x;
+            this.y = y;
+            this.vx = vx;
+            this.vy = vy;
+            this.ax = ax;
+            this.ay = ay;
+
+            this.radius = radius;
+            this.color = color;
+        }
+
+        update(fx, fy) {
+            this.ax = fx; // TODO: add mass
+            this.ay = fy; // TODO: add mass
+            this.vx += this.ax;
+            this.vy += this.ay;
+            this.x += this.vx;
+            this.y += this.vy;
+        }
+
+        draw(ctx) {
+            draw_circle(ctx, this.x, this.y, this.radius, this.color);
+        }
+    }
+
+    var projectile = new Projectile(xc, y, vx, 0);
+    window.requestAnimationFrame(function animationLoop() {
+
+        // clear the canvas
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        // draw planet and projectile
+        draw_circle(context, xc, yc, planet_radius, 'blue');
+        projectile.draw(context);
+        draw_circle(context, xc, y, projectile.radius, 'black');
+
+        // check for collision
+        if (detect_collision(projectile.x, projectile.y, projectile.radius, xc, yc, planet_radius)) {
+            // numeric stability
+            let ref_distance = planet_radius + projectile.radius;
+            let curr_distance = distance(projectile.x, projectile.y, xc, yc);
+            let diff = ref_distance - curr_distance;
+            projectile.x += diff * (projectile.x - xc) / curr_distance;
+            projectile.y += diff * (projectile.y - yc) / curr_distance;
+
+            let velocities = apply_collision(projectile.x, projectile.y, projectile.vx, projectile.vy, xc, yc);
+            projectile.vx = velocities[0];
+            projectile.vy = velocities[1];
+        }
+
+        // compute forces
+        let curr_distance = distance(projectile.x, projectile.y, xc, yc);
+        let force = k*m/curr_distance;
+        let fx = - force * (projectile.x - xc) / curr_distance;
+        let fy = - force * (projectile.y - yc) / curr_distance;
+
+        // update projectile
+        projectile.update(fx, fy);
+
+        window.requestAnimationFrame(animationLoop);
+    });
+    </script>
+</body>
+</html>
