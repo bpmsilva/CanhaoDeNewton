@@ -1,4 +1,5 @@
-import { distance, draw_circle } from "./helpers.js";
+import { distance, draw_circle, detect_collision, apply_collision } from "./helpers.js";
+import { Projectile } from "./objects.js";
 
 // Canvas
 const canvas = document.getElementById('canvas');
@@ -8,39 +9,12 @@ const context = canvas.getContext('2d');
 const xc = canvas.width / 2;
 const yc = canvas.height / 2;
 const k = 0.005;
-const m = 20000;
+const m = 2000;
 const planet_radius = 100;
 
 // inputs
-var y = 200 - planet_radius;
-var vx = 10;
-
-class Projectile {
-    constructor(x, y, vx, vy, ax=0, ay=0, radius=10, color='green') {
-        this.x = x;
-        this.y = y;
-        this.vx = vx;
-        this.vy = vy;
-        this.ax = ax;
-        this.ay = ay;
-
-        this.radius = radius;
-        this.color = color;
-    }
-
-    update(fx, fy) {
-        this.ax = fx; // TODO: add mass
-        this.ay = fy; // TODO: add mass
-        this.vx += this.ax;
-        this.vy += this.ay;
-        this.x += this.vx;
-        this.y += this.vy;
-    }
-
-    draw(ctx) {
-        draw_circle(ctx, this.x, this.y, this.radius, this.color);
-    }
-}
+var y = 1.5*planet_radius;
+var vx = 5; 
 
 var projectile = new Projectile(xc, y, vx, 0);
 
@@ -52,6 +26,21 @@ window.requestAnimationFrame(function animationLoop() {
     // draw planet and projectile
     draw_circle(context, xc, yc, planet_radius, 'blue');
     projectile.draw(context);
+    draw_circle(context, xc, y, projectile.radius, 'black');
+
+    // check for collision
+    if (detect_collision(projectile.x, projectile.y, projectile.radius, xc, yc, planet_radius)) {
+        // numeric stability
+        let ref_distance = planet_radius + projectile.radius;
+        let curr_distance = distance(projectile.x, projectile.y, xc, yc);
+        let diff = ref_distance - curr_distance;
+        projectile.x += diff * (projectile.x - xc) / curr_distance;
+        projectile.y += diff * (projectile.y - yc) / curr_distance;
+
+        let velocities = apply_collision(projectile.x, projectile.y, projectile.vx, projectile.vy, xc, yc);
+        projectile.vx = velocities[0];
+        projectile.vy = velocities[1];
+    }
 
     // compute forces
     let curr_distance = distance(projectile.x, projectile.y, xc, yc);
